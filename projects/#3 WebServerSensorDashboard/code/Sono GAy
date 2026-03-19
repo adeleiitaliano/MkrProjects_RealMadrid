@@ -1,0 +1,75 @@
+void loop() {
+    WiFiClient client = server.available();
+
+    if (client) {
+        Serial.println("Nuovo client connesso!");
+
+        String richiesta = "";
+
+        while (client.connected()) {
+            if (client.available()) {
+
+                richiesta = client.readStringUntil('\r');
+                Serial.println(richiesta);
+                client.flush();
+
+                // 🔥 Controllo se è stato premuto il bottone
+                if (richiesta.indexOf("GET /LED=ON") >= 0) {
+                    carrier.leds.fill(0, 0, 255); // LED blu acceso
+                    carrier.leds.show();
+                }
+
+                if (richiesta.indexOf("GET /LED=OFF") >= 0) {
+                    carrier.leds.fill(0, 0, 0); // LED spento
+                    carrier.leds.show();
+                }
+
+                // Lettura sensori
+                float temperatura = carrier.Env.readTemperature();
+                float humidity = carrier.Env.readHumidity();
+                float pressione = carrier.Env.readPressure();
+
+                // Risposta HTTP
+                client.println("HTTP/1.1 200 OK");
+                client.println("Content-type:text/html");
+                client.println();
+                client.println("<!DOCTYPE html>");
+                client.println("<html>");
+
+                client.println("<head>");
+                client.println("<meta http-equiv='refresh' content='2'>");
+                client.println("<title>Stazione Meteo</title>");
+                client.println("</head>");
+
+                client.println("<body>");
+                client.println("<h1>Stazione Meteo Arduino</h1>");
+
+                client.print("<h2>Temperatura: ");
+                client.print(temperatura);
+                client.println(" &deg;C</h2>");
+
+                client.print("<h2>Umidita': ");
+                client.print(humidity);
+                client.println(" %</h2>");
+
+                client.print("<h2>Pressione: ");
+                client.print(pressione);
+                client.println(" hPa</h2>");
+
+                // 🔘 Pulsanti LED
+                client.println("<br>");
+                client.println("<a href=\"/LED=ON\"><button>Accendi LED</button></a>");
+                client.println("<a href=\"/LED=OFF\"><button>Spegni LED</button></a>");
+
+                client.println("</body>");
+                client.println("</html>");
+                client.println();
+
+                break;
+            }
+        }
+
+        client.stop();
+        Serial.println("Client disconnesso");
+    }
+}
